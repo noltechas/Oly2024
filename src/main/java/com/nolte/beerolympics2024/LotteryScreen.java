@@ -8,13 +8,14 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.util.Duration;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class LotteryScreen extends Pane {
 
     private final double RADIUS = 100; // Radius of the circle on which profile pictures will be placed
 
-    public LotteryScreen(List<Object> rankings) {
+    public LotteryScreen(ArrayList<Object> rankings) {
         Circle whiteCircle = new Circle(RADIUS + 20); // Slightly larger white circle
         whiteCircle.setFill(Color.WHITE);
         whiteCircle.setCenterX(getWidth() / 2);

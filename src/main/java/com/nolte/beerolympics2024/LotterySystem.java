@@ -79,10 +79,9 @@ public class LotterySystem extends Application {
         startLotteryButton.setStyle("-fx-background-color: #FFA500; -fx-text-fill: " + TEXT_COLOR_1 + "; -fx-border-radius: 20; -fx-background-radius: 20; -fx-padding: 5 15;");
 
         startLotteryButton.setOnAction(e -> {
-            LotteryScreen lotteryScreen = new LotteryScreen(rankings);
-            Scene lotteryScene = new Scene(lotteryScreen, 500, 500); // Adjust size as needed
-            Stage primaryStage = (Stage) startLotteryButton.getScene().getWindow();
-            primaryStage.setScene(lotteryScene);
+            // Open a new screen here
+            // As you mentioned you'll make this screen later, for now, I'm just displaying a message.
+            System.out.println("New screen will open here.");
         });
 
         Button saveButton = new Button("Save");  // Added save button
