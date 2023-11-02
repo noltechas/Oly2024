@@ -1,6 +1,7 @@
 package com.nolte.beerolympics2024;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -78,9 +79,10 @@ public class LotterySystem extends Application {
         startLotteryButton.setStyle("-fx-background-color: #FFA500; -fx-text-fill: " + TEXT_COLOR_1 + "; -fx-border-radius: 20; -fx-background-radius: 20; -fx-padding: 5 15;");
 
         startLotteryButton.setOnAction(e -> {
-            // Open a new screen here
-            // As you mentioned you'll make this screen later, for now, I'm just displaying a message.
-            System.out.println("New screen will open here.");
+            LotteryScreen lotteryScreen = new LotteryScreen(rankings);
+            Scene lotteryScene = new Scene(lotteryScreen, 500, 500); // Adjust size as needed
+            Stage primaryStage = (Stage) startLotteryButton.getScene().getWindow();
+            primaryStage.setScene(lotteryScene);
         });
 
         Button saveButton = new Button("Save");  // Added save button
@@ -142,6 +144,7 @@ public class LotterySystem extends Application {
         rightPane.setMinWidth(500);  // Increased width
         rightPane.setPrefHeight(800);  // Added preferred height
 
+        VBox.setVgrow(rankingsBox, Priority.ALWAYS);
         rankingsBox.setOnDragOver(event -> {
             if (event.getGestureSource() != rankingsBox && event.getDragboard().hasString()) {
                 event.acceptTransferModes(TransferMode.MOVE);
@@ -173,11 +176,25 @@ public class LotterySystem extends Application {
             event.consume();
         });
 
+        ScrollPane rankingsScrollPane = new ScrollPane(rankingsBox);
+        rankingsScrollPane.setStyle("-fx-background-color: #3a4ed5; -fx-border-color: #3a4ed5; -fx-scrollbar-arrow-increment-button: none; -fx-scrollbar-arrow-decrement-button: none;");
+        rankingsScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER); // Hide horizontal scrollbar.
+        rankingsScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED); // Show vertical scrollbar only when needed.
+        rankingsScrollPane.setFitToWidth(true); // This ensures the width of the content matches the width of the scroll pane.
+
+        // Use Platform.runLater to delay the styling until after initial rendering
+        Platform.runLater(() -> {
+            rankingsScrollPane.lookup(".viewport").setStyle("-fx-background-color: #3a4ed5;");
+            rankingsScrollPane.lookup(".thumb").setStyle("-fx-background-color: #FFA500;"); // Change #FFA500 to your desired color.
+            rankingsScrollPane.lookup(".track").setStyle("-fx-background-color: #6a57a9;"); // Change #6a57a9 to your desired color.
+            rankingsScrollPane.setStyle("-fx-background-color: #3a4ed5; -fx-border-color: #3a4ed5; -fx-scrollbar-arrow-increment-button: none; -fx-scrollbar-arrow-decrement-button: none;");
+        });
+
         // Setting label font styles for Rankings
         Label rankingsLabel = new Label("Rankings");
         rankingsLabel.setFont(headerFont);
         rankingsLabel.setStyle(headerStyle);
-        rightPane.getChildren().addAll(rankingsLabel, rankingsBox);
+        rightPane.getChildren().addAll(rankingsLabel, rankingsScrollPane);
 
         HBox root = new HBox(100, leftPane, rightPane);
         root.setPadding(new Insets(40));
