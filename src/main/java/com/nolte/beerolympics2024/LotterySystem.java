@@ -53,6 +53,7 @@ public class LotterySystem extends Application {
     private final Popup dragPopup = new Popup();
     private List<Object> rankings = new ArrayList<>();  // Initialize it as an empty list
     private static final String IMAGES_DIR = "contestant_images";  // New constant for image directory
+    private VBox rankingsBox = new VBox(10);
 
     public static void main(String[] args) {
         launch(args);
@@ -141,7 +142,6 @@ public class LotterySystem extends Application {
         rightPane.setMinWidth(500);  // Increased width
         rightPane.setPrefHeight(800);  // Added preferred height
 
-        VBox rankingsBox = new VBox(10);
         rankingsBox.setOnDragOver(event -> {
             if (event.getGestureSource() != rankingsBox && event.getDragboard().hasString()) {
                 event.acceptTransferModes(TransferMode.MOVE);
@@ -168,6 +168,7 @@ public class LotterySystem extends Application {
                 rankingsBox.getChildren().add(targetIndex, draggedNode);
                 success = true;
             }
+            updateRankings(rankingsBox);
             event.setDropCompleted(success);
             event.consume();
         });
@@ -336,9 +337,110 @@ public class LotterySystem extends Application {
             JSONArray jsonRankings = (JSONArray) jsonObject.get("rankings");
 
             rankings.clear();
-
-            // Convert JSONArray to List<String>
             rankings.addAll(jsonRankings);
+
+            for (Object rankingObj : rankings) {
+                JSONObject ranking = (JSONObject) rankingObj;
+                String name = (String) ranking.get("name");
+                String choice = (String) ranking.get("choice");
+                String imagePath = (String) ranking.get("imagePath");
+
+                // Create a label for the rank number
+                Label rankNumber = new Label(String.valueOf(rankingCounter++));
+                rankNumber.setStyle("-fx-text-fill: yellow; -fx-font-size: 24; -fx-font-family: 'Arial Rounded MT Bold';");
+
+                Label playerName = new Label(name + " | " + choice);
+                playerName.setFont(Font.font("Arial Rounded MT Bold", FontWeight.BOLD, 18));
+                playerName.setStyle("-fx-text-fill: " + FOREGROUND_COLOR + "; -fx-background-color: #6a57a9; -fx-border-radius: 15; -fx-padding: 5 15; -fx-background-radius: 15;");
+
+                ImageView playerImageView = null;
+                if (imagePath != null && !imagePath.isEmpty()) {
+                    playerImageView = new ImageView(new Image(new FileInputStream(imagePath)));
+                    playerImageView.setFitHeight(40);
+                    playerImageView.setFitWidth(40);
+                    playerImageView.setClip(new Circle(20, 20, 20));
+                    playerName.setGraphic(playerImageView);
+                    playerName.setContentDisplay(ContentDisplay.LEFT);
+                }
+
+                HBox playerInfoBox = new HBox(10, playerImageView, playerName);
+                playerInfoBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                playerInfoBox.setStyle("-fx-background-color: #6a57a9; -fx-border-radius: 15; -fx-background-radius: 15; -fx-padding: 5 15;");
+
+                HBox rankEntry = new HBox(10);
+                rankEntry.setSpacing(20);
+                rankEntry.setPadding(new Insets(10));
+                rankEntry.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                rankEntry.getChildren().addAll(rankNumber, playerInfoBox);
+
+                // Drag Detected Event
+                rankEntry.setOnDragDetected(event -> {
+                    // Capture a snapshot of the playerInfoBox (excluding the yellow rankings number)
+                    SnapshotParameters snapshotParameters = new SnapshotParameters();
+                    snapshotParameters.setFill(javafx.scene.paint.Color.TRANSPARENT);
+                    WritableImage snapshot = playerInfoBox.snapshot(snapshotParameters, null);
+
+                    // Initiate the drag-and-drop process
+                    Dragboard db = rankEntry.startDragAndDrop(TransferMode.MOVE);
+
+                    // Set the drag view to the captured snapshot of the playerInfoBox
+                    db.setDragView(snapshot, event.getX(), event.getY());
+
+                    ClipboardContent content = new ClipboardContent();
+                    content.putString(String.valueOf(rankingsBox.getChildren().indexOf(rankEntry)));
+                    db.setContent(content);
+                    event.consume();
+                });
+
+                // Drag Over Event
+                rankEntry.setOnDragOver(event -> {
+                    if (event.getGestureSource() != rankEntry && event.getDragboard().hasString()) {
+                        event.acceptTransferModes(TransferMode.MOVE);
+                    }
+                    event.consume();
+                });
+
+                // Drag Dropped Event
+                rankEntry.setOnDragDropped(event -> {
+                    Dragboard db = event.getDragboard();
+                    boolean success = false;
+                    if (db.hasString()) {
+                        int draggedIdx = Integer.parseInt(db.getString());
+                        Node draggedNode = rankingsBox.getChildren().get(draggedIdx);
+                        rankingsBox.getChildren().remove(draggedIdx);
+
+                        double targetY = event.getY();
+                        int targetIndex = 0;
+                        boolean isDroppedAtEnd = true;
+
+                        for (Node child : rankingsBox.getChildren()) {
+                            if (child.getBoundsInParent().getMinY() > targetY) {
+                                isDroppedAtEnd = false;
+                                break;
+                            }
+                            targetIndex++;
+                        }
+
+                        if (targetY <= 0) { // Dropped above the list
+                            rankingsBox.getChildren().add(0, draggedNode);
+                        } else if (isDroppedAtEnd) { // Dropped below the list
+                            rankingsBox.getChildren().add(draggedNode);
+                        } else {
+                            rankingsBox.getChildren().add(targetIndex, draggedNode);
+                        }
+
+                        success = true;
+
+                        // Update the yellow ranking numbers
+                        updateRankings(rankingsBox);
+                    }
+                    event.setDropCompleted(success);
+                    event.consume();
+                });
+
+
+                rankingsBox.getChildren().add(rankEntry);
+            }
 
         } catch (FileNotFoundException e) {
             System.out.println("Rankings file not found. Starting with default data.");
