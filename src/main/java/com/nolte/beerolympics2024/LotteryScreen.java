@@ -5,6 +5,7 @@ import javafx.animation.PathTransition;
 import javafx.animation.RotateTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -51,7 +52,7 @@ public class LotteryScreen extends Pane {
             double centerX = getWidth() / 2;
             double centerY = getHeight() / 2;
 
-            Group ballsGroup = new Group();
+            this.ballsGroup = new Group();
 
             // Position the ballsGroup to the center of the screen
             ballsGroup.setTranslateX(centerX);
@@ -98,6 +99,7 @@ public class LotteryScreen extends Pane {
 
                 // Add the image holder to the group
                 ballsGroup.getChildren().add(imageHolder);
+                ballPanes.add(imageHolder); // Add this line to populate the ballPanes list
             }
 
             // Create a rotation animation for the group
@@ -242,19 +244,30 @@ public class LotteryScreen extends Pane {
             throw new IllegalStateException("Rank is not a number");
         }
         VBox targetColumn = getTargetColumn(rank);
+        StackPane ballPane = ballPanes.get(rank - 1);
 
-        StackPane ballPane = ballPanes.get(rank - 1); // Assuming ballPanes has been populated in the same order as rankings
+        // Calculate the absolute position of the ball
+        Point2D ballAbsolutePosition = ballPane.localToScene(ballPane.getLayoutBounds().getCenterX(), ballPane.getLayoutBounds().getCenterY());
 
-        // Create the move animation
+        // Create the path for debugging purposes
+        Path path = createPath(ballAbsolutePosition.getX(), ballAbsolutePosition.getY(), targetColumn.getLayoutX(), targetColumn.getLayoutY());
+        path.setStroke(Color.RED); // Set the stroke color so you can see the path
+        path.setStrokeWidth(2);
+        path.getStrokeDashArray().setAll(10.0, 10.0); // Make the path dashed
+        ((Pane) this.getParent()).getChildren().add(path); // Add the path to the parent pane for visualization
+
         PathTransition transition = new PathTransition();
         transition.setDuration(Duration.seconds(3));
         transition.setNode(ballPane);
-        transition.setPath(createPath(ballPane.getLayoutX(), ballPane.getLayoutY(), targetColumn.getLayoutX(), poolOneColumn.getLayoutY()));
+        transition.setPath(path);
 
         transition.setOnFinished(e -> {
-            // After moving, add the ballPane to the target VBox
+            // Remove the debugging path
+            ((Pane) this.getParent()).getChildren().remove(path);
+
+            // Now remove the ball from the ballsGroup and add it to the target column
+            ballsGroup.getChildren().remove(ballPane);
             targetColumn.getChildren().add(ballPane);
-            // Call the next move
             moveNextBall(index + 1);
         });
 
