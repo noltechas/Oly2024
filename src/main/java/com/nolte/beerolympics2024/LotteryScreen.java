@@ -109,7 +109,7 @@ public class LotteryScreen extends Pane {
             rotateTransition.setInterpolator(Interpolator.LINEAR);
 
             // Start the rotation
-            rotateTransition.play();
+            // rotateTransition.play();
 
 
             // Apply a counter-rotation to each ball to keep them upright
@@ -231,7 +231,6 @@ public class LotteryScreen extends Pane {
             return;
         }
 
-        // Get the next contestant and determine the target column
         JSONObject contestant = shuffledRankings.get(index);
         Object rankObj = contestant.get("rank");
         int rank;
@@ -243,35 +242,52 @@ public class LotteryScreen extends Pane {
         } else {
             throw new IllegalStateException("Rank is not a number");
         }
+
         VBox targetColumn = getTargetColumn(rank);
         StackPane ballPane = ballPanes.get(rank - 1);
+
+        // Ensure the ball is on top when moving
+        ballPane.toFront();
 
         // Calculate the absolute position of the ball
         Point2D ballAbsolutePosition = ballPane.localToScene(ballPane.getLayoutBounds().getCenterX(), ballPane.getLayoutBounds().getCenterY());
 
-        // Create the path for debugging purposes
-        Path path = createPath(ballAbsolutePosition.getX(), ballAbsolutePosition.getY(), targetColumn.getLayoutX(), targetColumn.getLayoutY());
-        path.setStroke(Color.RED); // Set the stroke color so you can see the path
-        path.setStrokeWidth(2);
-        path.getStrokeDashArray().setAll(10.0, 10.0); // Make the path dashed
-        ((Pane) this.getParent()).getChildren().add(path); // Add the path to the parent pane for visualization
+        // Calculate the Y-coordinate for the next open row in the target column
+        double nextRowY = targetColumn.getLayoutY() + targetColumn.getChildren().size() * (ballPane.getBoundsInParent().getHeight() + 5); // 5 is the spacing between balls
 
+        // Create a dotted line path from the ball's current position to the target column's next open row
+        Path path = new Path();
+        path.getElements().add(new MoveTo(ballAbsolutePosition.getX(), ballAbsolutePosition.getY()));
+        path.getElements().add(new LineTo(targetColumn.getLayoutX() + targetColumn.getWidth() / 2, nextRowY));
+        path.setStroke(Color.RED);
+        path.setStrokeWidth(2);
+        path.getStrokeDashArray().setAll(10.0, 10.0);
+        this.getChildren().add(path);
+
+        // Create the path transition
         PathTransition transition = new PathTransition();
         transition.setDuration(Duration.seconds(3));
-        transition.setNode(ballPane);
+        transition.setNode(ballPane); // Ensure this is the ball pane that you want to move
         transition.setPath(path);
+        transition.setOrientation(PathTransition.OrientationType.NONE); // The ball does not rotate along the path
+        transition.setInterpolator(Interpolator.LINEAR); // Move at a constant speed
 
+        // Start the transition
+        transition.play();
+
+        // Handle the transition's onFinish event
         transition.setOnFinished(e -> {
-            // Remove the debugging path
-            ((Pane) this.getParent()).getChildren().remove(path);
+            // Remove the dotted line after the transition finishes
+            this.getChildren().remove(path);
 
-            // Now remove the ball from the ballsGroup and add it to the target column
-            ballsGroup.getChildren().remove(ballPane);
+            // Move the ball to the target column
             targetColumn.getChildren().add(ballPane);
+            ballPane.setLayoutX(targetColumn.getLayoutX() + targetColumn.getWidth() / 2 - ballPane.getWidth() / 2); // Center in the VBox
+            ballPane.setLayoutY(nextRowY - targetColumn.getLayoutY()); // Adjust Y to be relative to the column
+
+            // Continue with the next ball
             moveNextBall(index + 1);
         });
-
-        transition.play();
     }
 
     // Create the path for the ball to move along
