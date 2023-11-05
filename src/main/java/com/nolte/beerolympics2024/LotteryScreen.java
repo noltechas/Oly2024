@@ -320,48 +320,8 @@ public class LotteryScreen extends Pane {
 
     private void moveBallsToColumns() {
         // Instead of moving balls, draw all paths
-        drawAllPaths();
+        Collections.shuffle(contestants);
         animateBallsToColumns();
-    }
-
-    private void drawAllPaths() {
-        final double spacing = 5.0; // Spacing between balls
-        final double initialOffset = 100.0; // Larger initial offset for the first ball
-
-        // Create a map to track the number of balls already placed in each column
-        Map<VBox, Integer> columnBallCount = new HashMap<>();
-
-        for (int i = 0; i < contestants.size(); i++) {
-                Contestant contestant = contestants.get(i);
-                int rank = contestant.getRank();
-
-                VBox targetColumn = getTargetColumn(rank);
-
-                // Initialize the ball count for this column if not already done
-                columnBallCount.putIfAbsent(targetColumn, 0);
-
-                StackPane ballPane = ballPanes.get(rank - 1);
-
-                // Calculate the Y position for the ball in the column
-                double nextRowY = targetColumn.getLayoutY() + initialOffset + columnBallCount.get(targetColumn) * (ballPane.getBoundsInParent().getHeight() + spacing);
-
-                // Increment the ball count for this column
-                columnBallCount.put(targetColumn, columnBallCount.get(targetColumn) + 1);
-
-                Point2D ballAbsolutePosition = ballPane.localToScene(ballPane.getLayoutBounds().getCenterX(), ballPane.getLayoutBounds().getCenterY());
-
-                System.out.println("Ball start: " + ballAbsolutePosition);
-                System.out.println("Ball end: " + new Point2D(targetColumn.getLayoutX() + targetColumn.getWidth() / 2, nextRowY));
-
-                Path path = new Path();
-                path.getElements().add(new MoveTo(ballAbsolutePosition.getX(), ballAbsolutePosition.getY()));
-                path.getElements().add(new LineTo(targetColumn.getLayoutX() + targetColumn.getWidth() / 2, nextRowY));
-                path.setStroke(Color.RED);
-                path.setStrokeWidth(2);
-                path.getStrokeDashArray().setAll(10.0, 10.0);
-
-                this.getChildren().add(path);
-            }
     }
 
     private void animateBallsToColumns() {
@@ -369,27 +329,31 @@ public class LotteryScreen extends Pane {
 
         for (int i = 0; i < contestants.size(); i++) {
             Contestant contestant = contestants.get(i);
+            int sizeOfColumns = contestants.size()/3;
             int rank = contestant.getRank();
+            int destinationColumn;
+            if (rank <= sizeOfColumns)
+                destinationColumn = 0;
+            else if (rank <= sizeOfColumns*2)
+                destinationColumn = 1;
+            else
+                destinationColumn = 2;
+            int destinationRow = rank - (destinationColumn * sizeOfColumns) - 1;
+            System.out.println("Rank: " + rank + ", Column: " + destinationColumn + ", Row: " + destinationRow);
 
-            VBox targetColumn = getTargetColumn(rank);
             StackPane ballPane = ballPanes.get(rank - 1);
 
-            // Calculate the Y position for the ball in the column
-            double nextRowY = targetColumn.getLayoutY() + 100.0 + targetColumn.getChildren().size() * (ballPane.getBoundsInParent().getHeight() + 5.0);
-
-            // Get the starting point for the ball in the scene's coordinate space
-            Point2D ballStartPoint = ballPane.localToScene(ballPane.getLayoutBounds().getCenterX(), ballPane.getLayoutBounds().getCenterY());
-
-            System.out.println("Animating ball from: " + ballStartPoint);
-            System.out.println("Animating ball to: " + new Point2D(targetColumn.getLayoutX() + targetColumn.getWidth() / 2, nextRowY));
+            Point2D ballAbsolutePosition = ballPane.localToScene(ballPane.getLayoutBounds().getCenterX(), ballPane.getLayoutBounds().getCenterY());
+            Point2D destination = new Point2D(335 + 546*destinationColumn, 185 + destinationRow * 120);
 
             // Create the path for the ball to follow
             Path path = new Path();
-            path.getElements().add(new MoveTo(ballStartPoint.getX(), ballStartPoint.getY()));
-            path.getElements().add(new LineTo(targetColumn.getLayoutX() + targetColumn.getWidth() / 2, nextRowY));
+            path.getElements().add(new MoveTo(40, 40));
+            LineTo finalDestination = new LineTo(destination.getX()-ballAbsolutePosition.getX(), destination.getY()-ballAbsolutePosition.getY());
+            path.getElements().add(finalDestination);
 
             // Create the path transition
-            PathTransition pathTransition = new PathTransition(Duration.seconds(3), path, ballPane);
+            PathTransition pathTransition = new PathTransition(Duration.seconds(1), path, ballPane);
 
             // Add the transition to the sequence
             sequentialTransition.getChildren().add(pathTransition);
