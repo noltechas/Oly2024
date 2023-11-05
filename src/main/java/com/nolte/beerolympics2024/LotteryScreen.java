@@ -3,6 +3,7 @@ package com.nolte.beerolympics2024;
 import javafx.animation.Interpolator;
 import javafx.animation.PathTransition;
 import javafx.animation.RotateTransition;
+import javafx.animation.SequentialTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
@@ -20,9 +21,7 @@ import javafx.geometry.Pos;
 import javafx.scene.layout.StackPane;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import javafx.scene.text.Font;
 import javafx.util.Duration;
@@ -39,10 +38,12 @@ public class LotteryScreen extends Pane {
     private List<JSONObject> shuffledRankings;
     private List<Object> rankings; // The list of rankings must be a class member
     private Group ballsGroup; // Group for balls so we can manipulate them later
+    private List<Contestant> contestants;
 
 
     public LotteryScreen(List<Object> rankings) {
         this.rankings = rankings;
+        createContestants();
         // Set the background color of the LotteryScreen
         this.setStyle("-fx-background-color: #3a4ed5;");
 
@@ -113,6 +114,7 @@ public class LotteryScreen extends Pane {
 
 
             // Apply a counter-rotation to each ball to keep them upright
+            /*
             for (Node ball : ballsGroup.getChildren()) {
                 RotateTransition counterRotate = new RotateTransition(Duration.seconds(10), ball);
                 counterRotate.setByAngle(-360);
@@ -120,6 +122,7 @@ public class LotteryScreen extends Pane {
                 counterRotate.setInterpolator(Interpolator.LINEAR);
                 counterRotate.play();
             }
+            */
 
             // Initialize the button and columns
             startLotteryButton = createStartButton();
@@ -171,6 +174,15 @@ public class LotteryScreen extends Pane {
         });
     }
 
+    private void createContestants() {
+        this.contestants = new ArrayList<>();
+        for (int i = 0; i < rankings.size(); i++) {
+            JSONObject contestant = (JSONObject) rankings.get(i); // Cast to JSONObject
+            contestants.add(new Contestant(contestant.get("name").toString(), Integer.parseInt(String.valueOf(contestant.get("rank"))), contestant.get("choice").toString(), contestant.get("imagePath").toString()));
+            System.out.println(contestants.get(contestants.size()-1).getRank());
+        }
+    }
+
     private VBox createPoolColumn(String name) {
         VBox column = new VBox();
         column.setAlignment(Pos.CENTER);
@@ -218,11 +230,6 @@ public class LotteryScreen extends Pane {
         poolOneColumn.setVisible(true);
         poolTwoColumn.setVisible(true);
         poolThreeColumn.setVisible(true);
-    }
-
-    private void moveBallsToColumns() {
-        // Use recursive calls to move one ball every 3 seconds
-        moveNextBall(0);
     }
 
     private void moveNextBall(int index) {
@@ -310,4 +317,86 @@ public class LotteryScreen extends Pane {
             return poolThreeColumn;
         }
     }
+
+    private void moveBallsToColumns() {
+        // Instead of moving balls, draw all paths
+        drawAllPaths();
+        animateBallsToColumns();
+    }
+
+    private void drawAllPaths() {
+        final double spacing = 5.0; // Spacing between balls
+        final double initialOffset = 100.0; // Larger initial offset for the first ball
+
+        // Create a map to track the number of balls already placed in each column
+        Map<VBox, Integer> columnBallCount = new HashMap<>();
+
+        for (int i = 0; i < contestants.size(); i++) {
+                Contestant contestant = contestants.get(i);
+                int rank = contestant.getRank();
+
+                VBox targetColumn = getTargetColumn(rank);
+
+                // Initialize the ball count for this column if not already done
+                columnBallCount.putIfAbsent(targetColumn, 0);
+
+                StackPane ballPane = ballPanes.get(rank - 1);
+
+                // Calculate the Y position for the ball in the column
+                double nextRowY = targetColumn.getLayoutY() + initialOffset + columnBallCount.get(targetColumn) * (ballPane.getBoundsInParent().getHeight() + spacing);
+
+                // Increment the ball count for this column
+                columnBallCount.put(targetColumn, columnBallCount.get(targetColumn) + 1);
+
+                Point2D ballAbsolutePosition = ballPane.localToScene(ballPane.getLayoutBounds().getCenterX(), ballPane.getLayoutBounds().getCenterY());
+
+                System.out.println("Ball start: " + ballAbsolutePosition);
+                System.out.println("Ball end: " + new Point2D(targetColumn.getLayoutX() + targetColumn.getWidth() / 2, nextRowY));
+
+                Path path = new Path();
+                path.getElements().add(new MoveTo(ballAbsolutePosition.getX(), ballAbsolutePosition.getY()));
+                path.getElements().add(new LineTo(targetColumn.getLayoutX() + targetColumn.getWidth() / 2, nextRowY));
+                path.setStroke(Color.RED);
+                path.setStrokeWidth(2);
+                path.getStrokeDashArray().setAll(10.0, 10.0);
+
+                this.getChildren().add(path);
+            }
+    }
+
+    private void animateBallsToColumns() {
+        SequentialTransition sequentialTransition = new SequentialTransition();
+
+        for (int i = 0; i < contestants.size(); i++) {
+            Contestant contestant = contestants.get(i);
+            int rank = contestant.getRank();
+
+            VBox targetColumn = getTargetColumn(rank);
+            StackPane ballPane = ballPanes.get(rank - 1);
+
+            // Calculate the Y position for the ball in the column
+            double nextRowY = targetColumn.getLayoutY() + 100.0 + targetColumn.getChildren().size() * (ballPane.getBoundsInParent().getHeight() + 5.0);
+
+            // Get the starting point for the ball in the scene's coordinate space
+            Point2D ballStartPoint = ballPane.localToScene(ballPane.getLayoutBounds().getCenterX(), ballPane.getLayoutBounds().getCenterY());
+
+            System.out.println("Animating ball from: " + ballStartPoint);
+            System.out.println("Animating ball to: " + new Point2D(targetColumn.getLayoutX() + targetColumn.getWidth() / 2, nextRowY));
+
+            // Create the path for the ball to follow
+            Path path = new Path();
+            path.getElements().add(new MoveTo(ballStartPoint.getX(), ballStartPoint.getY()));
+            path.getElements().add(new LineTo(targetColumn.getLayoutX() + targetColumn.getWidth() / 2, nextRowY));
+
+            // Create the path transition
+            PathTransition pathTransition = new PathTransition(Duration.seconds(3), path, ballPane);
+
+            // Add the transition to the sequence
+            sequentialTransition.getChildren().add(pathTransition);
+        }
+
+        // Play the animation sequence
+        sequentialTransition.play();
+    }
+
 }

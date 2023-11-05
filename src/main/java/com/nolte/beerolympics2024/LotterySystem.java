@@ -38,7 +38,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -302,7 +301,6 @@ public class LotterySystem extends Application {
                 contestantDetails.put("choice", choiceDropdown.getValue());
                 contestantDetails.put("imagePath", imagePath);
                 rankings.add(contestantDetails);
-                System.out.println(rankings);
 
                 nameField.clear();
                 choiceDropdown.setValue(null);
@@ -334,7 +332,7 @@ public class LotterySystem extends Application {
     }
 
     private void saveRankings() {
-        System.out.println(rankings);
+        System.out.println("Rankings Saved!");
         JSONObject obj = new JSONObject();
         JSONArray jsonRankings = new JSONArray();
 
