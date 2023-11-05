@@ -39,6 +39,8 @@ public class LotteryScreen extends Pane {
     private List<Object> rankings; // The list of rankings must be a class member
     private Group ballsGroup; // Group for balls so we can manipulate them later
     private List<Contestant> contestants;
+    private Map<Node, RotateTransition> counterRotations = new HashMap<>();
+    private Group staticBallsGroup = new Group(); // This group will hold balls that are not rotating
 
 
     public LotteryScreen(List<Object> rankings) {
@@ -58,6 +60,12 @@ public class LotteryScreen extends Pane {
             // Position the ballsGroup to the center of the screen
             ballsGroup.setTranslateX(centerX);
             ballsGroup.setTranslateY(centerY);
+
+            // In your initialization or constructor
+            this.getChildren().add(staticBallsGroup); // Add the static group to the main container
+
+            staticBallsGroup.layoutXProperty().bind(ballsGroup.layoutXProperty());
+            staticBallsGroup.layoutYProperty().bind(ballsGroup.layoutYProperty());
 
             double angleStep = 360.0 / rankings.size();
 
@@ -108,21 +116,17 @@ public class LotteryScreen extends Pane {
             rotateTransition.setByAngle(360);
             rotateTransition.setCycleCount(RotateTransition.INDEFINITE);
             rotateTransition.setInterpolator(Interpolator.LINEAR);
-
-            // Start the rotation
-            // rotateTransition.play();
-
+            rotateTransition.play(); // Start rotating the balls
 
             // Apply a counter-rotation to each ball to keep them upright
-            /*
             for (Node ball : ballsGroup.getChildren()) {
                 RotateTransition counterRotate = new RotateTransition(Duration.seconds(10), ball);
                 counterRotate.setByAngle(-360);
                 counterRotate.setCycleCount(RotateTransition.INDEFINITE);
                 counterRotate.setInterpolator(Interpolator.LINEAR);
                 counterRotate.play();
+                counterRotations.put(ball, counterRotate); // Store the transition
             }
-            */
 
             // Initialize the button and columns
             startLotteryButton = createStartButton();
@@ -179,7 +183,6 @@ public class LotteryScreen extends Pane {
         for (int i = 0; i < rankings.size(); i++) {
             JSONObject contestant = (JSONObject) rankings.get(i); // Cast to JSONObject
             contestants.add(new Contestant(contestant.get("name").toString(), Integer.parseInt(String.valueOf(contestant.get("rank"))), contestant.get("choice").toString(), contestant.get("imagePath").toString()));
-            System.out.println(contestants.get(contestants.size()-1).getRank());
         }
     }
 
@@ -232,92 +235,6 @@ public class LotteryScreen extends Pane {
         poolThreeColumn.setVisible(true);
     }
 
-    private void moveNextBall(int index) {
-        if (index >= shuffledRankings.size()) {
-            // All balls have been moved
-            return;
-        }
-
-        JSONObject contestant = shuffledRankings.get(index);
-        Object rankObj = contestant.get("rank");
-        int rank;
-
-        if (rankObj instanceof Integer) {
-            rank = (int) rankObj;
-        } else if (rankObj instanceof Long) {
-            rank = ((Long) rankObj).intValue();
-        } else {
-            throw new IllegalStateException("Rank is not a number");
-        }
-
-        VBox targetColumn = getTargetColumn(rank);
-        StackPane ballPane = ballPanes.get(rank - 1);
-
-        // Ensure the ball is on top when moving
-        ballPane.toFront();
-
-        // Calculate the absolute position of the ball
-        Point2D ballAbsolutePosition = ballPane.localToScene(ballPane.getLayoutBounds().getCenterX(), ballPane.getLayoutBounds().getCenterY());
-
-        // Calculate the Y-coordinate for the next open row in the target column
-        double nextRowY = targetColumn.getLayoutY() + targetColumn.getChildren().size() * (ballPane.getBoundsInParent().getHeight() + 5); // 5 is the spacing between balls
-
-        // Create a dotted line path from the ball's current position to the target column's next open row
-        Path path = new Path();
-        path.getElements().add(new MoveTo(ballAbsolutePosition.getX(), ballAbsolutePosition.getY()));
-        path.getElements().add(new LineTo(targetColumn.getLayoutX() + targetColumn.getWidth() / 2, nextRowY));
-        path.setStroke(Color.RED);
-        path.setStrokeWidth(2);
-        path.getStrokeDashArray().setAll(10.0, 10.0);
-        this.getChildren().add(path);
-
-        // Create the path transition
-        PathTransition transition = new PathTransition();
-        transition.setDuration(Duration.seconds(3));
-        transition.setNode(ballPane); // Ensure this is the ball pane that you want to move
-        transition.setPath(path);
-        transition.setOrientation(PathTransition.OrientationType.NONE); // The ball does not rotate along the path
-        transition.setInterpolator(Interpolator.LINEAR); // Move at a constant speed
-
-        // Start the transition
-        transition.play();
-
-        // Handle the transition's onFinish event
-        transition.setOnFinished(e -> {
-            // Remove the dotted line after the transition finishes
-            this.getChildren().remove(path);
-
-            // Move the ball to the target column
-            targetColumn.getChildren().add(ballPane);
-            ballPane.setLayoutX(targetColumn.getLayoutX() + targetColumn.getWidth() / 2 - ballPane.getWidth() / 2); // Center in the VBox
-            ballPane.setLayoutY(nextRowY - targetColumn.getLayoutY()); // Adjust Y to be relative to the column
-
-            // Continue with the next ball
-            moveNextBall(index + 1);
-        });
-    }
-
-    // Create the path for the ball to move along
-    private Path createPath(double startX, double startY, double endX, double endY) {
-        Path path = new Path();
-        path.getElements().add(new MoveTo(startX, startY));
-        path.getElements().add(new LineTo(endX, endY));
-        return path;
-    }
-
-    // Determine the target column based on the contestant's rank
-    private VBox getTargetColumn(int rank) {
-        int totalContestants = rankings.size();
-        int threshold = totalContestants / 3;
-        if (rank <= threshold) {
-            return poolOneColumn;
-        } else if (rank <= threshold * 2) {
-            return poolTwoColumn;
-        } else {
-            return poolThreeColumn;
-        }
-    }
-
     private void moveBallsToColumns() {
         // Instead of moving balls, draw all paths
         Collections.shuffle(contestants);
@@ -339,7 +256,6 @@ public class LotteryScreen extends Pane {
             else
                 destinationColumn = 2;
             int destinationRow = rank - (destinationColumn * sizeOfColumns) - 1;
-            System.out.println("Rank: " + rank + ", Column: " + destinationColumn + ", Row: " + destinationRow);
 
             StackPane ballPane = ballPanes.get(rank - 1);
 
@@ -353,7 +269,7 @@ public class LotteryScreen extends Pane {
             path.getElements().add(finalDestination);
 
             // Create the path transition
-            PathTransition pathTransition = new PathTransition(Duration.seconds(1), path, ballPane);
+            PathTransition pathTransition = new PathTransition(Duration.seconds(2), path, ballPane);
 
             // Add the transition to the sequence
             sequentialTransition.getChildren().add(pathTransition);
