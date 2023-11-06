@@ -23,7 +23,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.*;
 
-import javafx.scene.text.Font;
 import javafx.util.Duration;
 import org.json.simple.JSONObject;
 
@@ -41,6 +40,7 @@ public class LotteryScreen extends Pane {
     private List<Contestant> contestants;
     private Map<Node, RotateTransition> counterRotations = new HashMap<>();
     private Group staticBallsGroup = new Group(); // This group will hold balls that are not rotating
+    private Map<Node, PathTransition> individualRotations = new HashMap<Node, PathTransition>();
 
 
     public LotteryScreen(List<Object> rankings) {
@@ -107,17 +107,43 @@ public class LotteryScreen extends Pane {
                 imageHolder.setLayoutY(y - BALL_SIZE / 2);
 
                 // Add the image holder to the group
-                ballsGroup.getChildren().add(imageHolder);
+                this.getChildren().add(imageHolder);
                 ballPanes.add(imageHolder); // Add this line to populate the ballPanes list
             }
 
-            // Create a rotation animation for the group
-            RotateTransition rotateTransition = new RotateTransition(Duration.seconds(10), ballsGroup);
-            rotateTransition.setByAngle(360);
-            rotateTransition.setCycleCount(RotateTransition.INDEFINITE);
-            rotateTransition.setInterpolator(Interpolator.LINEAR);
-            rotateTransition.play(); // Start rotating the balls
+            // Define the circular path
+            Path circlePath = new Path();
+            circlePath.getElements().add(new MoveTo(centerX + RADIUS, centerY)); // Start at the rightmost point of the circle
+            circlePath.getElements().add(new ArcTo(RADIUS, RADIUS, 0, centerX - RADIUS, centerY, false, true)); // Arc to the left
+            circlePath.getElements().add(new ArcTo(RADIUS, RADIUS, 0, centerX + RADIUS, centerY, false, true)); // Arc back to the start
 
+            // Visualize the path (for debugging purposes)
+            circlePath.setStroke(Color.RED);
+            circlePath.setStrokeWidth(2);
+            circlePath.getStrokeDashArray().setAll(10.0, 10.0);
+            circlePath.setFill(null); // Ensure the path is not filled
+            this.getChildren().add(circlePath); // Add the path to the screen for visualization
+
+            // Duration for one ball to complete the orbit
+            Duration orbitDuration = Duration.seconds(10);
+
+            // Calculate the delay for each ball based on its position in the sequence
+            Duration delayBetweenBalls = orbitDuration.divide(rankings.size());
+
+            // Apply the PathTransition to each ballPane
+            for (int i = 0; i < rankings.size(); i++) {
+                StackPane ballPane = ballPanes.get(i);
+
+                // Create a PathTransition for the ballPane
+                PathTransition orbitTransition = new PathTransition();
+                orbitTransition.setDuration(orbitDuration);
+                orbitTransition.setPath(circlePath);
+                orbitTransition.setNode(ballPane);
+                // ... [rest of the PathTransition setup]
+                orbitTransition.play();
+            }
+
+            /*
             // Apply a counter-rotation to each ball to keep them upright
             for (Node ball : ballsGroup.getChildren()) {
                 RotateTransition counterRotate = new RotateTransition(Duration.seconds(10), ball);
@@ -127,6 +153,9 @@ public class LotteryScreen extends Pane {
                 counterRotate.play();
                 counterRotations.put(ball, counterRotate); // Store the transition
             }
+
+             */
+
 
             // Initialize the button and columns
             startLotteryButton = createStartButton();
@@ -269,7 +298,15 @@ public class LotteryScreen extends Pane {
             path.getElements().add(finalDestination);
 
             // Create the path transition
-            PathTransition pathTransition = new PathTransition(Duration.seconds(2), path, ballPane);
+            PathTransition pathTransition = new PathTransition(Duration.seconds(3), path, ballPane);
+            pathTransition.setOnFinished(event -> {
+                // Stop the individual rotation of the ball
+                PathTransition ballRotation = individualRotations.get(ballPane);
+                if (ballRotation != null) {
+                    ballRotation.stop();
+                }
+
+            });
 
             // Add the transition to the sequence
             sequentialTransition.getChildren().add(pathTransition);

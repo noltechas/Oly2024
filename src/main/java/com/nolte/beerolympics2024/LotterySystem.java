@@ -54,6 +54,7 @@ public class LotterySystem extends Application {
     private List<Object> rankings = new ArrayList<>();  // Initialize it as an empty list
     private static final String IMAGES_DIR = "contestant_images";  // New constant for image directory
     private VBox rankingsBox = new VBox(10);
+    private ArrayList<Contestant> contestants;
 
     public static void main(String[] args) {
         launch(args);
@@ -78,16 +79,10 @@ public class LotterySystem extends Application {
         startLotteryButton.setStyle("-fx-background-color: #FFA500; -fx-text-fill: " + TEXT_COLOR_1 + "; -fx-border-radius: 20; -fx-background-radius: 20; -fx-padding: 5 15;");
 
         startLotteryButton.setOnAction(e -> {
-            // Create an instance of LotteryScreen with the current rankings
-            LotteryScreen lotteryScreen = new LotteryScreen(rankings);
-
-            // Get the current stage (window) from the button
+            createContestants();
             Stage currentStage = (Stage) startLotteryButton.getScene().getWindow();
-
-            // Create a new Scene with the LotteryScreen and set it to the current stage
-            Scene lotteryScene = new Scene(lotteryScreen, 600, 600); // Adjust size as needed
-            currentStage.setScene(lotteryScene);
-            currentStage.setTitle("Lottery Draw");
+            NEWLotteryScreen lotteryScreen = new NEWLotteryScreen(contestants);
+            lotteryScreen.initializeScreen(currentStage);
         });
 
         Button saveButton = new Button("Save");  // Added save button
@@ -319,6 +314,14 @@ public class LotterySystem extends Application {
         primaryStage.setWidth(1700);  // Example width value
         primaryStage.setHeight(850);   // Example height value
         primaryStage.show();
+    }
+
+    private void createContestants() {
+        this.contestants = new ArrayList<>();
+        for (int i = 0; i < rankings.size(); i++) {
+            JSONObject contestant = (JSONObject) rankings.get(i); // Cast to JSONObject
+            contestants.add(new Contestant(contestant.get("name").toString(), Integer.parseInt(String.valueOf(contestant.get("rank"))), contestant.get("choice").toString(), contestant.get("imagePath").toString()));
+        }
     }
 
     private void updateRankings(VBox rankingsBox) {
