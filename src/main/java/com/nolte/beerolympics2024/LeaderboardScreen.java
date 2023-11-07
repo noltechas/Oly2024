@@ -1,50 +1,46 @@
 package com.nolte.beerolympics2024;
 
-import com.nolte.beerolympics2024.Contestant;
-import com.nolte.beerolympics2024.Team;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.VPos;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
-import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.paint.ImagePattern;
 import javafx.stage.Stage;
 import javafx.geometry.Pos;
-import javafx.scene.control.Label;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class LeaderboardScreen {
 
     private List<Team> teams;
+    private Stage previousStage;
 
-    // Constructor
-    private Stage previousStage; // Add a reference to the previous stage
-
-    // Updated constructor to accept the previous stage
     public LeaderboardScreen(List<Team> teams, Stage previousStage) {
         this.teams = teams;
-        this.previousStage = previousStage; // Store the reference to the previous stage
+        this.previousStage = previousStage;
     }
 
-    // Method to display the screen
     public void display() {
         Platform.runLater(() -> {
-            VBox mainVBox = new VBox(10); // Spacing between rows
+            VBox mainVBox = new VBox(10);
             mainVBox.setAlignment(Pos.TOP_CENTER);
             mainVBox.setFillWidth(true);
-            mainVBox.setStyle("-fx-background-color: #053C5E;");
+            mainVBox.setStyle("-fx-background-color: #657ED4;");
+            mainVBox.setPadding(new Insets(20, 0, 20, 0)); // Add padding to the top and bottom
 
             ScrollPane scrollPane = new ScrollPane();
             scrollPane.setContent(mainVBox);
@@ -55,131 +51,215 @@ public class LeaderboardScreen {
             Stage stage = new Stage();
             stage.setMaximized(true);
 
-            // Define column constraints for team name and contestants
-            ColumnConstraints column1 = new ColumnConstraints();
-            column1.setHgrow(Priority.ALWAYS); // Allow this column to grow and fill space
-            column1.setHalignment(HPos.CENTER); // Center align the team name
+            // Use percentage widths for responsive column sizes
+            double[] columnPercentages = {15, 40, 15, 10, 10, 10}; // Sum should be 100%
+            ColumnConstraints[] columnConstraints = Arrays.stream(columnPercentages)
+                    .mapToObj(percentage -> {
+                        ColumnConstraints constraints = new ColumnConstraints();
+                        constraints.setPercentWidth(percentage);
+                        constraints.setHgrow(Priority.ALWAYS);
+                        constraints.setHalignment(HPos.CENTER);
+                        return constraints;
+                    }).toArray(ColumnConstraints[]::new);
 
-            ColumnConstraints column2 = new ColumnConstraints();
-            column2.setHgrow(Priority.ALWAYS); // Allow this column to grow and fill space
-            column2.setHalignment(HPos.CENTER); // Center align the contestants
+            // Header labels
+            GridPane headerGrid = new GridPane();
+            headerGrid.setAlignment(Pos.CENTER);
+            headerGrid.setPadding(new Insets(10, 50, 10, 50));
+            headerGrid.getColumnConstraints().addAll(columnConstraints);
 
-            // Define column constraints for the new labels
-            ColumnConstraints scoreColumn = new ColumnConstraints();
-            scoreColumn.setHalignment(HPos.CENTER);
-            scoreColumn.setHgrow(Priority.ALWAYS);
+            // Add the header labels
+            headerGrid.add(createStyledHeaderLabel("Team Name"), 0, 0);
+            headerGrid.add(createStyledHeaderLabel("Athletes"), 1, 0);
+            headerGrid.add(createStyledHeaderLabel("Total Score"), 2, 0);
+            headerGrid.add(createStyledHeaderLabel("Game Points"), 3, 0);
+            headerGrid.add(createStyledHeaderLabel("Drinks Remaining"), 4, 0);
+            headerGrid.add(createStyledHeaderLabel("Pukes"), 5, 0);
 
-            ColumnConstraints pointsColumn = new ColumnConstraints();
-            pointsColumn.setHalignment(HPos.CENTER);
-            pointsColumn.setHgrow(Priority.ALWAYS);
+            mainVBox.getChildren().add(headerGrid);
 
-            ColumnConstraints drinksColumn = new ColumnConstraints();
-            drinksColumn.setHalignment(HPos.CENTER);
-            drinksColumn.setHgrow(Priority.ALWAYS);
-
-            ColumnConstraints pukesColumn = new ColumnConstraints();
-            pukesColumn.setHalignment(HPos.CENTER);
-            pukesColumn.setHgrow(Priority.ALWAYS);
-
-            // Add header labels for the new columns to the labelsGridPane
-            Text scoreLabel = new Text("Total Score");
-            scoreLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-            Text pointsLabel = new Text("Game Points");
-            pointsLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-            Text drinksLabel = new Text("Drinks Remaining");
-            drinksLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-            Text pukesLabel = new Text("Pukes");
-            pukesLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-
-            // Row labels in a grid pane with similar constraints
-            GridPane labelsGridPane = new GridPane();
-            labelsGridPane.setAlignment(Pos.CENTER);
-            labelsGridPane.getColumnConstraints().addAll(column1, column2);
-
-            Text teamLabel1 = new Text("Team Name");
-            teamLabel1.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-            Text athletesLabel1 = new Text("Athletes");
-            athletesLabel1.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
-
-            // Add the labels to the grid pane and center them
-            GridPane.setConstraints(teamLabel1, 0, 0, 1, 1, HPos.CENTER, VPos.CENTER);
-            GridPane.setConstraints(athletesLabel1, 1, 0, 1, 1, HPos.CENTER, VPos.CENTER);
-            labelsGridPane.add(teamLabel1, 0, 0);
-            labelsGridPane.add(athletesLabel1, 1, 0);
-            labelsGridPane.add(scoreLabel, 2, 0);
-            labelsGridPane.add(pointsLabel, 3, 0);
-            labelsGridPane.add(drinksLabel, 4, 0);
-            labelsGridPane.add(pukesLabel, 5, 0);
-
-            mainVBox.getChildren().add(labelsGridPane); // Add the labels grid pane to the main VBox
-
+            int rowCounter = 0;
+            // Teams and their information
             for (Team team : teams) {
-                GridPane gridPane = new GridPane();
-                gridPane.setAlignment(Pos.CENTER);
-                gridPane.setHgap(10);
-                gridPane.setPadding(new Insets(10, 50, 10, 50));
-                gridPane.getColumnConstraints().addAll(column1, column2, scoreColumn, pointsColumn, drinksColumn, pukesColumn);
+                GridPane teamGrid = new GridPane();
+                teamGrid.setAlignment(Pos.CENTER);
+                teamGrid.setHgap(10);
+                teamGrid.setPadding(new Insets(10, 50, 10, 50));
+                teamGrid.getColumnConstraints().addAll(columnConstraints);
 
                 Rectangle rect = new Rectangle(0, 100);
                 rect.setArcWidth(30);
                 rect.setArcHeight(30);
-                rect.setFill(Color.web("#BFDBF7"));
-                rect.widthProperty().bind(scene.widthProperty().subtract(100));
-
-                Text teamName = new Text(team.getTeamName());
-                teamName.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-fill: #A31621;");
-
-                GridPane.setHalignment(teamName, HPos.CENTER);
-                GridPane.setValignment(teamName, VPos.CENTER);
-
-                HBox contestantsHBox = new HBox(10);
-                contestantsHBox.setAlignment(Pos.CENTER); // Center the contents of the HBox
-
-                gridPane.add(teamName, 0, 0);
-                gridPane.add(contestantsHBox, 1, 0);
-
-                // Add the new columns with the team values
-                Text scoreValue = new Text(String.valueOf(team.getScore()));
-                scoreValue.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-fill: #1f7a8c;");
-                Text pointsValue = new Text(String.valueOf(team.getPoints()));
-                pointsValue.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-fill: #1f7a8c;");
-                Text drinksValue = new Text(String.valueOf(team.getDrinks()));
-                drinksValue.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-fill: #1f7a8c;");
-                Text pukesValue = new Text(String.valueOf(team.getPukes()));
-                pukesValue.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-fill: #1f7a8c;");
-
-                // Add these Text objects to the gridPane
-                gridPane.add(scoreValue, 2, 0);
-                gridPane.add(pointsValue, 3, 0);
-                gridPane.add(drinksValue, 4, 0);
-                gridPane.add(pukesValue, 5, 0);
-
-                for (Contestant contestant : team.getContestants()) {
-                    VBox contestantBox = new VBox(5);
-                    contestantBox.setAlignment(Pos.CENTER);
-
-                    Image image = new Image(contestant.getImagePath());
-                    Circle circle = new Circle(30);
-                    circle.setFill(new ImagePattern(image));
-
-                    Label nameLabel = new Label(contestant.getName());
-                    nameLabel.setFont(Font.font("Arial Rounded MT Bold", FontWeight.BOLD, 14));
-                    nameLabel.setTextFill(Color.web("#053C5E"));
-
-                    contestantBox.getChildren().addAll(circle, nameLabel);
-                    contestantsHBox.getChildren().add(contestantBox);
+                if(rowCounter == 0) {
+                    rect.setFill(Color.web("#FFD700"));
+                    rect.setStroke(Color.web("#DAA520"));
+                    rect.setStrokeWidth(7.0);
                 }
+                else if(rowCounter == 1)
+                    rect.setFill(Color.web("#C0C0C0"));
+                else if(rowCounter == 2)
+                    rect.setFill(Color.web("#CD7F32"));
+                else
+                    rect.setFill(Color.web("#3626A7"));
+
+                rect.widthProperty().bind(Bindings.min(scene.widthProperty().subtract(100), mainVBox.widthProperty()));
+
+                Text teamName;
+                teamName = createStyledText(team.getTeamName(), "#fbfbff", 24);
+                if(rowCounter == 0)
+                    teamName = createStyledText(team.getTeamName(), "#fbfbff", 24, "#0D0106");
+                teamGrid.add(teamName, 0, 0);
+
+                // Create the HBox for contestants
+                HBox contestantsHBox;
+                if(rowCounter == 0)
+                    contestantsHBox = createContestantsHBox(team, true);
+                else
+                    contestantsHBox = createContestantsHBox(team);
+                GridPane.setHalignment(contestantsHBox, HPos.CENTER); // This line ensures the HBox itself is centered in its cell
+                GridPane.setValignment(contestantsHBox, VPos.CENTER); // This line ensures the HBox itself is vertically centered
+                teamGrid.add(contestantsHBox, 1, 0); // Ensure this is the correct column index for athletes
+
+                if(rowCounter!=0)
+                    addTeamScoresToGridPane(teamGrid, team);
+                else
+                    addTeamScoresToGridPane(teamGrid, team,true);
+
+                rowCounter++;
+
+                mainVBox.setSpacing(scene.getHeight() / 20);
 
                 StackPane stackPane = new StackPane();
-                StackPane.setAlignment(rect, Pos.CENTER);
-                StackPane.setAlignment(gridPane, Pos.CENTER);
-                stackPane.getChildren().addAll(rect, gridPane);
+                stackPane.setAlignment(Pos.CENTER);
+                stackPane.getChildren().addAll(rect, teamGrid);
+
+                // Optionally, add padding to each row if you want even more space between them
+                stackPane.setPadding(new Insets(10, 0, 10, 0)); // Add padding to the top and bottom of each row
+
                 mainVBox.getChildren().add(stackPane);
             }
 
+            // Create an HBox for the image and button
+            HBox bottomHBox = new HBox(20);
+            bottomHBox.setAlignment(Pos.CENTER);
+
+            // Add the "Game Screen" button
+            Button gameScreenButton = new Button("Game Screen");
+            gameScreenButton.setFont(Font.font("Arial Rounded MT Bold", FontWeight.BOLD, 24));
+            // Add your styling for the button here
+            gameScreenButton.setOnAction(event -> {
+                // Handle the button click to go to the Game Screen
+                // You will replace this with your actual navigation logic
+                System.out.println("Navigate to the Game Screen");
+            });
+
+            // Add the image and button to the HBox
+            bottomHBox.getChildren().addAll(gameScreenButton);
+
+            // Add a spacer Pane to push the HBox to the bottom
+            Pane spacer = new Pane();
+            VBox.setVgrow(spacer, Priority.ALWAYS);
+            mainVBox.getChildren().addAll(spacer, bottomHBox);
+
+            stage.setMaximized(true);
             stage.setScene(scene);
             stage.show();
         });
     }
 
+    private HBox createContestantsHBox(Team team) {
+        HBox contestantsHBox = new HBox(10);
+        contestantsHBox.setAlignment(Pos.CENTER); // This centers the contents of the HBox itself
+
+        for (Contestant contestant : team.getContestants()) {
+            VBox contestantBox = new VBox(5);
+            contestantBox.setAlignment(Pos.CENTER); // This centers the content of each contestant's VBox
+
+            Image image = new Image(contestant.getImagePath());
+            Circle circle = new Circle(30);
+            circle.setFill(new ImagePattern(image));
+
+            Text nameLabel = new Text(contestant.getName());
+            nameLabel.setFont(Font.font("Arial Rounded MT Bold", FontWeight.BOLD, 14));
+            nameLabel.setFill(Color.web("#fbfbff")); // Font color as per your original code
+
+            contestantBox.getChildren().addAll(circle, nameLabel);
+            contestantsHBox.getChildren().add(contestantBox);
+        }
+        return contestantsHBox;
+    }
+
+    private HBox createContestantsHBox(Team team, boolean gold) {
+        HBox contestantsHBox = new HBox(10);
+        contestantsHBox.setAlignment(Pos.CENTER); // This centers the contents of the HBox itself
+
+        for (Contestant contestant : team.getContestants()) {
+            VBox contestantBox = new VBox(5);
+            contestantBox.setAlignment(Pos.CENTER); // This centers the content of each contestant's VBox
+
+            Image image = new Image(contestant.getImagePath());
+            Circle circle = new Circle(30);
+            circle.setFill(new ImagePattern(image));
+
+            Text nameLabel = new Text(contestant.getName());
+            nameLabel.setFont(Font.font("Arial Rounded MT Bold", FontWeight.BOLD, 14));
+            nameLabel.setFill(Color.web("#fbfbff")); // Font color as per your original code
+            nameLabel.setStrokeWidth(0.2);
+            nameLabel.setFill(Color.web("#0D0106"));
+
+            contestantBox.getChildren().addAll(circle, nameLabel);
+            contestantsHBox.getChildren().add(contestantBox);
+        }
+        return contestantsHBox;
+    }
+
+    private Text createStyledHeaderLabel(String text) {
+        Text headerLabel = new Text(text);
+        headerLabel.setFont(Font.font("Arial Rounded MT Bold", FontWeight.BOLD, 20));
+        headerLabel.setFill(Color.web("#fbfbff")); // Font color as per your original code
+        GridPane.setHalignment(headerLabel, HPos.CENTER);
+        GridPane.setValignment(headerLabel, VPos.CENTER);
+        return headerLabel;
+    }
+
+    private Text createStyledText(String content, String color, int fontSize) {
+        Text text = new Text(content);
+        text.setFont(Font.font("Arial Rounded MT Bold", FontWeight.BOLD, fontSize));
+        text.setFill(Color.web(color));
+        return text;
+    }
+
+    private Text createStyledText(String content, String color, int fontSize, String strokeColor) {
+        fontSize *= 1.25;
+        Text text = new Text(content);
+        text.setFont(Font.font("Arial Rounded MT Bold", FontWeight.BOLD, fontSize));
+        text.setStroke(Color.web(strokeColor));
+        text.setStrokeWidth((double) fontSize/33);
+        text.setFill(Color.web(color));
+        return text;
+    }
+
+    private void addTeamScoresToGridPane(GridPane gridPane, Team team) {
+        Text scoreValue = createStyledText(String.valueOf(team.getScore()), "#fbfbff", 30);
+        Text pointsValue = createStyledText(String.valueOf(team.getPoints()), "#fbfbff", 30);
+        Text drinksValue = createStyledText(String.valueOf(team.getDrinks()), "#fbfbff", 30);
+        Text pukesValue = createStyledText(String.valueOf(team.getPukes()), "#fbfbff", 30);
+
+        gridPane.add(scoreValue, 2, 0);
+        gridPane.add(pointsValue, 2 + 1, 0);
+        gridPane.add(drinksValue, 2 + 2, 0);
+        gridPane.add(pukesValue, 2 + 3, 0);
+    }
+
+    private void addTeamScoresToGridPane(GridPane gridPane, Team team, boolean gold) {
+        Text scoreValue = createStyledText(String.valueOf(team.getScore()), "#fbfbff", 30, "0d0106");
+        Text pointsValue = createStyledText(String.valueOf(team.getPoints()), "#fbfbff", 30, "0d0106");
+        Text drinksValue = createStyledText(String.valueOf(team.getDrinks()), "#fbfbff", 30, "0d0106");
+        Text pukesValue = createStyledText(String.valueOf(team.getPukes()), "#fbfbff", 30, "0d0106");
+
+        gridPane.add(scoreValue, 2, 0);
+        gridPane.add(pointsValue, 2 + 1, 0);
+        gridPane.add(drinksValue, 2 + 2, 0);
+        gridPane.add(pukesValue, 2 + 3, 0);
+    }
 }

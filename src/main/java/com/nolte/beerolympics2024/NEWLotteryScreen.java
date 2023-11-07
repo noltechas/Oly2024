@@ -312,7 +312,7 @@ public class NEWLotteryScreen extends Parent {
             startLotteryButton.setVisible(false); // Hide the button
 
             // LOTTERY TIME
-            Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(5), e -> {
+            Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(0.1), e -> {
                 int index = currentIndex.getAndIncrement();
                 if (index < ballGroups.size()) {
                     Group ballGroup = ballGroups.get(index);
