@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Game One",
+    "numOfPlayers": 4
+  },
+  {
+    "name": "Game Two",
+    "numOfPlayers": 3
+  },
+  {
+    "name": "Game Three",
+    "numOfPlayers": 5
+  },
+  {
+    "name": "Game Four",
+    "numOfPlayers": 6
+  },
+  {
+    "name": "Game Five",
+    "numOfPlayers": 2
+  },
+  {
+    "name": "Game Six",
+    "numOfPlayers": 8
+  },
+  {
+    "name": "Game Seven",
+    "numOfPlayers": 4
+  }
+]

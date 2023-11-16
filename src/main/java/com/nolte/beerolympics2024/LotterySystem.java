@@ -29,6 +29,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.text.ParseException;
 import java.util.Base64;
 import javafx.embed.swing.SwingFXUtils;
@@ -82,7 +83,11 @@ public class LotterySystem extends Application {
             createContestants();
             Stage currentStage = (Stage) startLotteryButton.getScene().getWindow();
             NEWLotteryScreen lotteryScreen = new NEWLotteryScreen(contestants);
-            lotteryScreen.initializeScreen(currentStage);
+            try {
+                lotteryScreen.initializeScreen(currentStage);
+            } catch (MalformedURLException ex) {
+                throw new RuntimeException(ex);
+            }
         });
 
         Button saveButton = new Button("Save");  // Added save button

@@ -28,6 +28,8 @@ import javafx.scene.text.Font;
 
 import javafx.scene.shape.Rectangle;
 
+import java.io.File;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
@@ -58,7 +60,7 @@ public class NEWLotteryScreen extends Parent {
         this.getChildren().add(mainPane);
     }
 
-    public void initializeScreen(Stage primaryStage) {
+    public void initializeScreen(Stage primaryStage) throws MalformedURLException {
         // Set the stage to be maximized
         this.primaryStage = primaryStage;
         this.primaryStage.setMaximized(true);
@@ -83,35 +85,34 @@ public class NEWLotteryScreen extends Parent {
         poolTwo = new VBox();
         poolThree = new VBox();
 
-        // Position the pools on the screen
-        poolOne.setLayoutX(100);
-        poolOne.setLayoutY(200);
-
-        poolTwo.setLayoutX(300);
-        poolTwo.setLayoutY(200);
-
-        poolThree.setLayoutX(500);
-        poolThree.setLayoutY(200);
-
         mainPane.getChildren().addAll(poolOne, poolTwo, poolThree);
 
         mainPane.widthProperty().addListener((obs, oldVal, newVal) -> {
             // This will be called after the mainPane has a new width, hence after layout pass
             if (newVal.doubleValue() > 0) { // Check if the new width is greater than 0
-                if(!created)
-                    createRoundedRectanglePathAndBalls();
+                if(!created) {
+                    try {
+                        createRoundedRectanglePathAndBalls();
+                    } catch (MalformedURLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
             }
         });
 
         mainPane.heightProperty().addListener((obs, oldVal, newVal) -> {
             // This will be called after the mainPane has a new height, hence after layout pass
             if (newVal.doubleValue() > 0) { // Check if the new height is greater than 0
-                if(!created)
-                    createRoundedRectanglePathAndBalls();
+                if(!created) {
+                    try {
+                        createRoundedRectanglePathAndBalls();
+                    } catch (MalformedURLException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
             }
         });
 
-        // Dimensions and style for the columns
         double columnWidth = 150;
         double columnHeight = 500;
         Color columnColor = Color.rgb(88, 86, 214); // Purple-blue color
@@ -133,19 +134,16 @@ public class NEWLotteryScreen extends Parent {
         poorColumn.setArcHeight(cornerRadius);
         poorColumn.setFill(columnColor);
 
-        // Before you create the columns
-        double columnWidthFraction = 0.25; // For example, 10% of the width
-        double columnHeightFraction = 0.75; // For example, 50% of the height
+        // Bind column width and height to mainPane dimensions
+        double widthRatio = 0.27; // Adjust this to change the width relative to the pane width
+        double heightRatio = 0.75; // Adjust this to change the height relative to the pane height
 
-        eliteColumn.widthProperty().bind(mainPane.widthProperty().multiply(columnWidthFraction));
-        eliteColumn.heightProperty().bind(mainPane.heightProperty().multiply(columnHeightFraction));
-
-        averageColumn.widthProperty().bind(mainPane.widthProperty().multiply(columnWidthFraction));
-        averageColumn.heightProperty().bind(mainPane.heightProperty().multiply(columnHeightFraction));
-
-        poorColumn.widthProperty().bind(mainPane.widthProperty().multiply(columnWidthFraction));
-        poorColumn.heightProperty().bind(mainPane.heightProperty().multiply(columnHeightFraction));
-
+        eliteColumn.widthProperty().bind(mainPane.widthProperty().multiply(widthRatio));
+        eliteColumn.heightProperty().bind(mainPane.heightProperty().multiply(heightRatio));
+        averageColumn.widthProperty().bind(mainPane.widthProperty().multiply(widthRatio));
+        averageColumn.heightProperty().bind(mainPane.heightProperty().multiply(heightRatio));
+        poorColumn.widthProperty().bind(mainPane.widthProperty().multiply(widthRatio));
+        poorColumn.heightProperty().bind(mainPane.heightProperty().multiply(heightRatio));
 
         // Create the labels for the columns
         Text eliteText = new Text("Elite");
@@ -171,12 +169,19 @@ public class NEWLotteryScreen extends Parent {
         poorBox.setAlignment(Pos.CENTER);
 
         // HBox to hold the three columns
-        HBox columnsBox = new HBox(100, eliteBox, averageBox, poorBox);
+        HBox columnsBox = new HBox(eliteBox, averageBox, poorBox);
         columnsBox.setAlignment(Pos.CENTER);
+        columnsBox.spacingProperty().bind(mainPane.widthProperty().multiply(0.02)); // Adjust the multiplier as needed
+
+        mainPane.widthProperty().addListener((obs, oldVal, newVal) -> {
+            double paddingValue = newVal.doubleValue() * 0.25; // 5% of mainPane's width
+            Insets paddingInsets = new Insets(0, paddingValue, 0, paddingValue);
+            columnsBox.setPadding(paddingInsets);
+        });
 
         // Center the HBox in the main pane
         columnsBox.layoutXProperty().bind(mainPane.widthProperty().subtract(columnsBox.widthProperty()).divide(2));
-        columnsBox.layoutYProperty().bind(mainPane.heightProperty().subtract(columnsBox.heightProperty()).divide(2));
+        columnsBox.layoutYProperty().bind(mainPane.heightProperty().subtract(columnsBox.heightProperty()).divide(2.15));
 
         columnsBox.setViewOrder(1.0);
         // Add the HBox to the main pane
@@ -186,10 +191,10 @@ public class NEWLotteryScreen extends Parent {
         setupStartLotteryButton();
     }
 
-    private void createBalls(Path path) {
+    private void createBalls(Path path) throws MalformedURLException {
         // Define the size for the ping pong balls and the images
-        double ballDiameter = 75; // Size of the ping pong ball
-        double imageDiameter = 50; // Size of the image, slightly smaller than the ball
+        double ballDiameter = mainPane.getHeight()/12.5; // Size of the ping pong ball
+        double imageDiameter = mainPane.getHeight()/17.5; // Size of the image, slightly smaller than the ball
         Duration totalDuration = Duration.seconds(15);
 
         // Calculate the path only after the pane has been sized appropriately
@@ -213,7 +218,11 @@ public class NEWLotteryScreen extends Parent {
 
             // Create the image with the contestant's picture
             Circle imageCircle = new Circle(imageDiameter / 2);
-            Image image = new Image(contestant.getImagePath(), imageDiameter, imageDiameter, true, true);
+
+            File file = new File(contestant.getImagePath());
+            String imageURL = file.toURI().toURL().toExternalForm();
+            Image image = new Image(imageURL, imageDiameter, imageDiameter, true, true);
+
             imageCircle.setFill(new ImagePattern(image));
 
             // Create a group to hold both the white circle and the image
@@ -226,7 +235,7 @@ public class NEWLotteryScreen extends Parent {
             // Calculate the ball's final position in its column
             int targetColumn = getTargetColumn(contestant);
             int targetRow = contestant.getRow();
-            double finalX = mainPane.getWidth()/5 + (mainPane.getWidth()/3.3)*targetColumn;
+            double finalX = mainPane.getWidth()/4.77 + (mainPane.getWidth()/3.45)*targetColumn;
             double finalY = mainPane.getHeight()/4.5 + (mainPane.getHeight()/8)*targetRow;
 
             // Create the dotted line
@@ -269,15 +278,16 @@ public class NEWLotteryScreen extends Parent {
         }
     }
 
-    private void createRoundedRectanglePathAndBalls() {
+    private void createRoundedRectanglePathAndBalls() throws MalformedURLException {
         // Now that we know the size of the mainPane, create the path
-        double margin = 50.0; // Ensure the margin is not causing the path to be off-screen
-        double cornerRadius = 150.0; // Ensure corner radius is appropriate
+        double margin = mainPane.getHeight()/17.5; // Ensure the margin is not causing the path to be off-screen
+        double cornerRadius; // Ensure corner radius is appropriate
         double width = mainPane.getWidth() - 2 * margin; // Subtract the margins from the total width
         double height = mainPane.getHeight() - 2 * margin; // Subtract the margins from the total height
 
         if (width > 0 && height > 0) {
             created = true;
+            cornerRadius = mainPane.getHeight()/9;
 
             Path roundedRect = new Path();
             roundedRect.getElements().add(new MoveTo(margin + cornerRadius, margin));
@@ -298,13 +308,13 @@ public class NEWLotteryScreen extends Parent {
 
     private void setupStartLotteryButton() {
         Button startLotteryButton = new Button("Start Lottery");
-        startLotteryButton.setFont(Font.font("Arial Rounded MT Bold", 30)); // Same font as column text
+        startLotteryButton.setFont(Font.font("Arial Rounded MT Bold", 20)); // Same font as column text
         startLotteryButton.setStyle("-fx-background-color: #FFA500; -fx-background-radius: 15;"); // Orange-ish color with rounded edges
-        startLotteryButton.setTextFill(Color.WHITE);
+        startLotteryButton.setTextFill(Color.BLACK);
 
         // Positioning the button at the bottom of the screen
         StackPane.setAlignment(startLotteryButton, Pos.BOTTOM_CENTER);
-        StackPane.setMargin(startLotteryButton, new Insets(0, 0, 20, 0)); // Adjust the bottom margin as needed
+        StackPane.setMargin(startLotteryButton, new Insets(0, 0, 0, 0)); // Adjust the bottom margin as needed
 
         // Event handler to start moving balls when clicked
         AtomicInteger currentIndex = new AtomicInteger(0);
@@ -348,7 +358,7 @@ public class NEWLotteryScreen extends Parent {
                             double finalX = ballGroup.getLayoutX() + ballGroup.getTranslateX() - mainPane.getWidth() / 11;
                             double finalY = ballGroup.getLayoutY() + ballGroup.getTranslateY();
 
-                            Text text = new Text(finalX + 225, finalY + 7, contestant.getName() + " - " + contestant.getChoice());
+                            Text text = new Text(finalX + mainPane.getWidth()/8, finalY + mainPane.getHeight()/125, contestant.getName() + " - " + contestant.getChoice());
                             contestantTexts.add(text);
                             text.setFont(new Font("Arial Rounded MT Bold", 20));
                             mainPane.getChildren().add(text);
@@ -377,10 +387,10 @@ public class NEWLotteryScreen extends Parent {
                                 for (int i = 0; i < contestants.size(); i++) {
                                     // Calculate the Y position for the row background based on the ball's final position
                                     Group ballGroup = newBallGroups.get(i);
-                                    double yPosition = ballGroup.getLayoutY() + ballGroup.getTranslateY() - ballGroup.getBoundsInParent().getHeight() / 2 - 20; // 20 pixels higher
+                                    double yPosition = ballGroup.getLayoutY() + ballGroup.getTranslateY() - ballGroup.getBoundsInParent().getHeight() / 2 - mainPane.getHeight()/75; // 20 pixels higher
 
                                     // Create the row background rectangle with adjusted height
-                                    Rectangle rowBackground = new Rectangle(mainPane.getWidth(), ballGroup.getBoundsInParent().getHeight() + 40); // 40 pixels taller
+                                    Rectangle rowBackground = new Rectangle(mainPane.getWidth(), ballGroup.getBoundsInParent().getHeight() + mainPane.getHeight()/35); // 40 pixels taller
                                     rowBackground.setY(yPosition);
                                     rowBackground.setFill(Color.web("#ffbb00"));
                                     rowBackground.setOpacity(0);  // Set initial opacity to 0 for the fade in effect
@@ -437,19 +447,19 @@ public class NEWLotteryScreen extends Parent {
                                             moveBallsToPositionTransition.getChildren().add(moveBallToColumn);
 
                                             moveBallsToPositionTransition.setOnFinished(event4 -> {
-                                                double rightmostPosition = 420; // Variable to track the rightmost ball position in each row
+                                                double rightmostPosition = mainPane.getWidth()/4.65; // Variable to track the rightmost ball position in each row
 
                                                 for (int row = 0; row < contestants.size()/3; row++) {
                                                     TextField teamNameField = new TextField("Team Name");
                                                     teamNameField.setLayoutX(rightmostPosition);
-                                                    teamNameField.setLayoutY(198 + (127*row));
-                                                    teamNameField.setFont(new Font("Arial Rounded MT Bold", 30));
+                                                    teamNameField.setLayoutY(mainPane.getHeight()/5.5 + (mainPane.getHeight()/7.95*row));
+                                                    teamNameField.setFont(new Font("Arial Rounded MT Bold", mainPane.getHeight()/25));
                                                     teamNameField.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
 
                                                     TextField anthemField = new TextField("National Anthem");
-                                                    anthemField.setLayoutX(rightmostPosition + 400);
-                                                    anthemField.setLayoutY(198 + (127*row));
-                                                    anthemField.setFont(new Font("Arial Rounded MT Bold", 30));
+                                                    anthemField.setLayoutX(rightmostPosition + mainPane.getWidth()/5);
+                                                    anthemField.setLayoutY(mainPane.getHeight()/5.5 + (mainPane.getHeight()/7.95*row));
+                                                    anthemField.setFont(new Font("Arial Rounded MT Bold", mainPane.getHeight()/25));
                                                     anthemField.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
 
                                                     // Add the text field to the pane
@@ -461,9 +471,9 @@ public class NEWLotteryScreen extends Parent {
                                                 PauseTransition pauseBeforeContinueButton = new PauseTransition(Duration.seconds(2));
                                                 pauseBeforeContinueButton.setOnFinished(event5 -> {
                                                     Button continueButton = new Button("Continue");
-                                                    continueButton.setLayoutX(mainPane.getWidth()*0.9); // Set to bottom right corner
+                                                    continueButton.setLayoutX(mainPane.getWidth()*0.87); // Set to bottom right corner
                                                     continueButton.setLayoutY(mainPane.getHeight()*0.9);
-                                                    continueButton.setFont(new Font("Arial Rounded MT Bold", 30));
+                                                    continueButton.setFont(new Font("Arial Rounded MT Bold", mainPane.getHeight()/25));
                                                     // Apply a similar style as your other buttons, you might have a specific style class or inline style
                                                     continueButton.setStyle("-fx-background-color: #ffbb00; -fx-text-fill: black; -fx-background-radius: 15;");
 
